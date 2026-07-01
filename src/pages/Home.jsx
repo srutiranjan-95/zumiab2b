@@ -1,5 +1,5 @@
 import {
-  Play,
+  // Play,
   Lock,
   ShieldCheck,
   IndianRupee,
@@ -10,55 +10,80 @@ import {
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getPublicProducts } from "../service/apiProductlist";
 
 import Homescreen from "../assets/Homescreen.png";
 
 function Home() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+const [visibleProducts, setVisibleProducts] = useState([]);
+const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const handleLoginClick = () => {
+  setLoading(true);
 
-  const products = [
-    {
-      id: 1,
-      image:
-        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
-      category: "FURNITURE",
-      title: "Modern Crystal Bed Sconce",
-      desc: "Premium decorative chandelier for luxury interiors.",
-      brand: "ZUMIA",
-      badge: "New",
-    },
-    {
-      id: 2,
-      image:
-        "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop",
-      category: "Indoor Lighting",
-      title: "Crystal Prism Cylinder Wall Sconce",
-      desc: "Ornate brass-finish sconce with faceted crystal grid delivers sparkling ambient light.",
-      brand: "ZUMIA",
-      badge: "New",
-    },
-    {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=1200&auto=format&fit=crop",
-      category: "Indoor Lighting",
-      title: "Crystal Prism Cylinder Wall Sconce",
-      desc: "Premium decorative chandelier for luxury interiors.",
-      brand: "ZUMIA",
-      badge: "Bestseller",
-    },
-    {
-      id: 4,
-      image:
-        "https://images.unsplash.com/photo-1484154218962-a197022b5858?q=80&w=1200&auto=format&fit=crop",
-      category: "LED Strips",
-      title: "Modern Crystal Chandelier",
-      desc: "Premium decorative chandelier for luxury interiors.",
-      brand: "ZUMIA",
-      badge: "Bestseller",
-    },
-  ];
+  setTimeout(() => {
+    navigate("/login/signin");
+    setLoading(false);
+  }, 1500);
+};
 
+const handleSignupClick = () => {
+  setLoading(true);
+
+  setTimeout(() => {
+    navigate("/login/signup");
+    setLoading(false);
+  }, 1500);
+};
+
+useEffect(() => {
+  fetchProducts();
+}, []);
+
+const fetchProducts = async () => {
+  try {
+    const response = await getPublicProducts();
+
+    if (response?.success) {
+      setProducts(response.data || []);
+      setVisibleProducts((response.data || []).slice(0, 4));
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+useEffect(() => {
+  if (products.length <= 4) return;
+
+  const interval = setInterval(() => {
+    setCurrentIndex((prevIndex) => {
+      let nextIndex = prevIndex + 4;
+
+      if (nextIndex >= products.length) {
+        nextIndex = 0;
+      }
+
+      const nextProducts = [];
+
+      for (let i = 0; i < 4; i++) {
+        nextProducts.push(
+          products[(nextIndex + i) % products.length]
+        );
+      }
+
+      setVisibleProducts(nextProducts);
+
+      return nextIndex;
+    });
+  }, 10000);
+
+  return () => clearInterval(interval);
+}, [products]);
   const features = [
     {
       id: 1,
@@ -123,7 +148,18 @@ function Home() {
   ];
 
   return (
-    <>
+  <>
+    {loading && (
+      <div className="fixed inset-0 z-[9999] bg-white/40 backdrop-blur-xs flex items-center justify-center">
+
+        <div className="three-body">
+          <div className="three-body__dot"></div>
+          <div className="three-body__dot"></div>
+          <div className="three-body__dot"></div>
+        </div>
+
+      </div>
+    )}
       {/* HERO SECTION */}
       <section
         className="relative min-h-screen bg-cover bg-center"
@@ -154,22 +190,27 @@ function Home() {
 
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mt-8 sm:mt-10 w-full sm:w-auto">
-              <button className="bg-white text-black px-6 sm:px-8 py-3 sm:py-4 text-xs sm:text-sm tracking-wide hover:bg-gray-200 transition cursor-pointer w-full sm:w-auto">
+              <button 
+              onClick={handleLoginClick}
+              className="bg-white text-black px-6 sm:px-8 py-3 sm:py-4 text-xs sm:text-sm tracking-wide hover:bg-gray-200 transition cursor-pointer w-full sm:w-auto">
                 EXPLORE COLLECTIONS
               </button>
 
-              <button className="border border-white/60 text-white px-6 sm:px-8 py-3 sm:py-4 text-xs sm:text-sm tracking-wide backdrop-blur-sm hover:bg-white/10 transition cursor-pointer w-full sm:w-auto">
-                APPLY FOR TRADE ACCOUNT
-              </button>
+              <button
+  onClick={handleSignupClick}
+  className="border border-white/60 text-white px-6 sm:px-8 py-3 sm:py-4 text-xs sm:text-sm tracking-wide backdrop-blur-sm hover:bg-white/10 transition cursor-pointer w-full sm:w-auto"
+>
+  APPLY FOR TRADE ACCOUNT
+</button>
             </div>
           </div>
         </div>
 
         {/* Demo Button */}
-        <button className="absolute bottom-5 right-5 sm:bottom-8 sm:right-8 z-10 flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/30 hover:bg-white/30 transition cursor-pointer text-sm">
+        {/* <button className="absolute bottom-5 right-5 sm:bottom-8 sm:right-8 z-10 flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/30 hover:bg-white/30 transition cursor-pointer text-sm">
           <Play size={16} className="sm:w-[18px] sm:h-[18px]" />
           Watch Product Demo
-        </button>
+        </button> */}
       </section>
 
       {/* PRODUCT SECTION */}
@@ -196,7 +237,7 @@ function Home() {
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6 mt-14 sm:mt-16">
-          {products.map((product) => (
+          {visibleProducts.map((product, index) => (
             <div
               key={product.id}
               className="bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-xl transition duration-300 flex flex-col max-w-[320px] w-full mx-auto"
@@ -205,9 +246,9 @@ function Home() {
               <div className="relative bg-gray-100 h-[220px] sm:h-[240px] overflow-hidden">
                 {/* Badge */}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-10">
-                  <span className="bg-blue-500 text-white text-[10px] px-3 py-1 rounded-full font-medium">
+                  {/* <span className="bg-blue-500 text-white text-[10px] px-3 py-1 rounded-full font-medium">
                     {product.badge}
-                  </span>
+                  </span> */}
 
                   <span className="bg-white text-black text-[10px] px-3 py-1 rounded-full font-medium">
                     On Order
@@ -215,27 +256,35 @@ function Home() {
                 </div>
 
                 <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-full object-cover hover:scale-105 transition duration-500"
-                />
+  src={
+    product?.images?.[0] ||
+    product?.main_image ||
+    "https://via.placeholder.com/400x400?text=No+Image"
+  }
+  alt={product?.name || "Product"}
+  className="w-full h-full object-cover hover:scale-105 transition duration-500"
+  onError={(e) => {
+    e.target.src =
+      "https://via.placeholder.com/400x400?text=No+Image";
+  }}
+/>
               </div>
 
               {/* Content */}
               <div className="p-4 flex flex-col flex-1">
                 <span className="inline-block bg-gray-100 text-black text-[11px] px-4 py-2 rounded-full font-medium w-fit">
-                  {product.category}
+                  {product?.category || "Category"}
                 </span>
 
                 <h3 className="mt-4 text-xl font-semibold text-black leading-snug min-h-[60px]">
-                  {product.title}
+                  {product?.name || "Product Name"}
                 </h3>
 
-                {product.desc && (
+                {product?.description && (
                   <p className="text-gray-500 mt-3 text-sm leading-6 min-h-[68px]">
-                    {product.desc.length > 50
-                      ? `${product.desc.substring(0, 50)}...`
-                      : product.desc}
+                    {product.description.length > 50
+                      ? `${product.description.substring(0, 50)}...`
+                      : product.description}
                   </p>
                 )}
 
@@ -245,12 +294,15 @@ function Home() {
 
                 {/* Button */}
                 <div className="mt-auto pt-5">
-                  <button className="w-full h-[50px] border border-blue-300 text-blue-500 rounded-full flex items-center justify-center gap-2 hover:bg-blue-50 transition cursor-pointer text-sm font-medium">
-                    <Lock size={17} />
-                    <span className="leading-none">
-                      Login to see price
-                    </span>
-                  </button>
+                  <button
+  onClick={handleLoginClick}
+  className="w-full h-[50px] border border-blue-300 text-blue-500 rounded-full flex items-center justify-center gap-2 hover:bg-blue-50 transition cursor-pointer text-sm font-medium"
+>
+  <Lock size={17} />
+  <span className="leading-none">
+    Login to see price
+  </span>
+</button>
                 </div>
               </div>
             </div>

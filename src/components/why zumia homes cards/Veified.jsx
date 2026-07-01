@@ -7,7 +7,19 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 function VerifiedB2BOnly() {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleSignupClick = () => {
+    navigate("/login/signup");
+  };
+
   const highlights = [
     "Manual verification of every business account",
     "No public retail access — B2B pricing stays protected",
@@ -44,7 +56,10 @@ function VerifiedB2BOnly() {
       {/* Hero Section */}
       <div className="bg-[#eef0f8] border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8 cursor-pointer"
+          >
             <ArrowLeft size={16} />
             Back
           </button>
@@ -175,7 +190,10 @@ function VerifiedB2BOnly() {
               exclusive collections, and dedicated support.
             </p>
 
-            <button className="bg-violet-600 hover:bg-violet-700 transition text-white font-semibold px-8 py-4 rounded-full shadow-lg">
+            <button
+              onClick={handleSignupClick}
+              className="bg-violet-600 hover:bg-violet-700 transition text-white font-semibold px-8 py-4 rounded-full shadow-lg cursor-pointer"
+            >
               Register as B2B Customer
             </button>
           </div>

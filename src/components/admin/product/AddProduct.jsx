@@ -8,10 +8,7 @@ import {
 
 import {
   X,
- ImagePlus,
-  BadgeCheck,
-  ClipboardList,
-  Plus,
+  ImagePlus,
   ChevronDown,
 } from "lucide-react";
 
@@ -24,6 +21,7 @@ import {
 export default function AddProduct({
   closeModal,
   onCreateProduct,
+  editProduct,
 }) {
 
   // FIX API DOUBLE CALL
@@ -39,24 +37,13 @@ export default function AddProduct({
   const [loading, setLoading] =
     useState(false);
 
-  const [tags, setTags] = useState([
-    "New",
-    "Featured",
-    "Bestseller",
-    "Sale",
-    "Limited",
-    "Eco",
-  ]);
-
-  const [customTag, setCustomTag] =
-    useState("");
-
   const [previewImages, setPreviewImages] =
     useState([]);
 
   const [productData, setProductData] =
     useState({
       name: "",
+      item_code: "",
       sku: "",
       category: "",
       brand: "",
@@ -67,6 +54,91 @@ export default function AddProduct({
       description: "",
       min_order_qty: "",
     });
+
+  // EDIT PRODUCT PREFILL
+  useEffect(() => {
+
+    if (editProduct) {
+
+      setProductData({
+
+        name:
+          editProduct.name || "",
+
+        item_code:
+          editProduct.itemCode || "",
+
+        sku:
+          editProduct.sku || "",
+
+        category:
+          editProduct.category || "",
+
+        brand:
+          editProduct.brand || "",
+
+        mrp:
+          editProduct.mrp
+            ?.replace("₹", "") || "",
+
+        retail:
+          editProduct.retail
+            ?.replace("₹", "") || "",
+
+        b2b:
+          editProduct.b2b
+            ?.replace("₹", "") || "",
+
+        stock:
+          editProduct.stock || "",
+
+        description:
+          editProduct.description || "",
+
+        min_order_qty:
+          editProduct.min_order_qty || "",
+
+      });
+
+      const allImages = [];
+
+      // MAIN IMAGE
+      if (editProduct.image) {
+
+        allImages.push({
+          url:
+            editProduct.image,
+        });
+
+      }
+
+      // PREVIEW IMAGES
+      if (
+        editProduct.images &&
+        editProduct.images.length >
+          0
+      ) {
+
+        editProduct.images.forEach(
+          (img) => {
+
+            allImages.push({
+              url:
+                img.url,
+            });
+
+          }
+        );
+
+      }
+
+      setPreviewImages(
+        allImages
+      );
+
+    }
+
+  }, [editProduct]);
 
   useEffect(() => {
 
@@ -191,41 +263,6 @@ export default function AddProduct({
 
   };
 
-  // ADD TAG
-  const handleAddTag = () => {
-
-    if (
-      customTag.trim() !== "" &&
-      !tags.includes(
-        customTag.trim()
-      )
-    ) {
-
-      setTags([
-        ...tags,
-        customTag.trim(),
-      ]);
-
-      setCustomTag("");
-
-    }
-
-  };
-
-  // DELETE TAG
-  const handleDeleteTag = (
-    tagToDelete
-  ) => {
-
-    setTags(
-      tags.filter(
-        (tag) =>
-          tag !== tagToDelete
-      )
-    );
-
-  };
-
   // CREATE PRODUCT API
   const handleCreateProduct =
     async () => {
@@ -234,57 +271,107 @@ export default function AddProduct({
 
         setLoading(true);
 
-        const payload = {
-          name:
-            productData.name,
+        const formData =
+          new FormData();
 
-          item_code:
-            productData.sku,
+        formData.append(
+          "name",
+          productData.name
+        );
 
-          brand:
-            productData.brand,
+        formData.append(
+          "item_code",
+          productData.item_code
+        );
 
-          description:
-            productData.description,
+        formData.append(
+          "brand",
+          productData.brand
+        );
 
-          category:
-            productData.category,
+        formData.append(
+          "category",
+          productData.category
+        );
 
-          mrp: Number(
-            productData.mrp
-          ),
+        formData.append(
+          "description",
+          productData.description
+        );
 
-          retail: Number(
-            productData.retail
-          ),
+        formData.append(
+          "mrp",
+          productData.mrp
+        );
 
-          b2b: Number(
-            productData.b2b
-          ),
+        formData.append(
+          "retail",
+          productData.retail
+        );
 
-          sku:
-            productData.sku,
+        formData.append(
+          "b2b",
+          productData.b2b
+        );
 
-          stock_quantity:
-            Number(
-              productData.stock
-            ),
+        formData.append(
+          "sku",
+          productData.sku
+        );
 
-          min_order_qty:
-            Number(
-              productData.min_order_qty
-            ) || 1,
+        formData.append(
+          "stock_quantity",
+          productData.stock
+        );
 
-          is_best_seller: true,
+        formData.append(
+          "min_order_qty",
+          productData.min_order_qty || 1
+        );
 
-          is_available_on_order: false,
+        // formData.append(
+        //   "is_best_seller",
+        //   true
+        // );
 
-          is_active: true,
-        };
+        // formData.append(
+        //   "is_available_on_order",
+        //   false
+        // );
+
+        // formData.append(
+        //   "is_active",
+        //   true
+        // );
+
+        // MULTIPLE IMAGES
+        previewImages.forEach(
+          (imageObj) => {
+
+            if (
+              imageObj.file
+            ) {
+
+              formData.append(
+                "images",
+                imageObj.file
+              );
+
+            }
+
+          }
+        );
+
+        console.log(
+          "PRODUCT PAYLOAD :",
+          Object.fromEntries(
+            formData.entries()
+          )
+        );
 
         const response =
           await createProduct(
-            payload
+            formData
           );
 
         console.log(
@@ -297,11 +384,16 @@ export default function AddProduct({
 
           image:
             previewImages[0]
-              ?.url ||
-            "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=300&auto=format&fit=crop",
+              ?.url || null,
 
           images:
-            previewImages,
+            previewImages
+              .slice(1)
+              .map(
+                (img) => ({
+                  url: img.url,
+                })
+              ),
 
           mrp: `₹${productData.mrp}`,
 
@@ -316,7 +408,7 @@ export default function AddProduct({
 
         console.log(
           "CREATE PRODUCT ERROR :",
-          error
+          error.response?.data || error
         );
 
       } finally {
@@ -337,7 +429,9 @@ export default function AddProduct({
         <div className="h-[42px] px-4 border-b border-gray-200 flex items-center justify-between">
 
           <h2 className="text-[13px] sm:text-[14px] font-semibold text-black">
-            Add New Product
+            {editProduct
+              ? "Edit Product"
+              : "Add New Product"}
           </h2>
 
           <button
@@ -355,7 +449,6 @@ export default function AddProduct({
           {/* LEFT SIDE */}
           <div>
 
-            {/* TOP */}
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
 
               <p className="text-[9px] sm:text-[10px] font-semibold text-black">
@@ -464,6 +557,7 @@ export default function AddProduct({
             {/* GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
 
+              {/* ITEM CODE */}
               <div>
 
                 <label className="text-[9px] sm:text-[10px] font-semibold text-black">
@@ -472,10 +566,12 @@ export default function AddProduct({
 
                 <input
                   type="text"
-                  name="sku"
-                  value={productData.sku}
+                  name="item_code"
+                  value={
+                    productData.item_code
+                  }
                   onChange={handleChange}
-                  placeholder="e.g. LT-1001"
+                  placeholder="e.g. ITEM-1001"
                   className="mt-1.5 h-[30px] w-full rounded-xl border border-gray-200 px-3 text-[10px] sm:text-[11px] outline-none"
                 />
 
@@ -506,7 +602,7 @@ export default function AddProduct({
 
                         <option
                           key={brand.id}
-                          value={brand.name}
+                          value={brand.id}
                         >
                           {brand.name}
                         </option>
@@ -576,7 +672,7 @@ export default function AddProduct({
                           category.id
                         }
                         value={
-                          category.name
+                          category.id
                         }
                       >
                         {
@@ -649,6 +745,7 @@ export default function AddProduct({
 
               </div>
 
+              {/* SKU */}
               <div>
 
                 <label className="text-[9px] sm:text-[10px] font-semibold text-black">
@@ -660,6 +757,7 @@ export default function AddProduct({
                   name="sku"
                   value={productData.sku}
                   onChange={handleChange}
+                  placeholder="e.g. SKU-1001"
                   className="mt-1.5 h-[30px] w-full rounded-xl border border-gray-200 px-3 text-[10px] sm:text-[11px] outline-none"
                 />
 
@@ -725,7 +823,11 @@ export default function AddProduct({
                 className="h-[32px] px-4 rounded-xl bg-blue-600 text-white text-[10px] sm:text-[11px] font-medium hover:bg-blue-700 transition-all duration-300"
               >
                 {loading
-                  ? "Creating..."
+                  ? editProduct
+                    ? "Updating..."
+                    : "Creating..."
+                  : editProduct
+                  ? "Update Product"
                   : "Create Product"}
               </button>
 

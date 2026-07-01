@@ -8,6 +8,8 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import { CartWebSocketProvider } from "./components/context/WebSocket";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -28,6 +30,9 @@ import Orders from "./components/admin/orders/Orders";
 import QuotesAdmin from "./components/admin/quotes/Quotes";
 import CatalogSettings from "./components/admin/product/CatalogSettings";
 import ProductPage from "./components/admin/product/ProductPage";
+import Receipts from "./components/admin/orders/receipts/Receipts";
+import OrderDetails from "./components/admin/orders/orderdetails/OrderDetails";
+
 
 /* ================= WHY ZUMIA HOMES ================= */
 
@@ -48,6 +53,7 @@ import UserProduct from "./components/user/products/Product";
 /* CART PAGE */
 import Cart from "./components/user/cart/Cart";
 
+import MyOrdersPage from "./components/user/orders/Orders";
 /* BUYING PAGE */
 import Buying from "./components/user/products/buying/Buying";
 
@@ -56,6 +62,7 @@ import Productdetails from "./components/user/products/productdetails/Productdet
 import Address from "./components/user/products/address/Address";
 
 import Payment from "./components/user/products/payment/Payment";
+
 
 // ================= PROTECTED ROUTE =================
 
@@ -156,10 +163,21 @@ function Layout() {
             element={<Orders />}
           />
 
+          <Route
+  path="order-details/:id"
+  element={<OrderDetails />}
+/>
+
           {/* QUOTES */}
           <Route
             path="quotes"
             element={<QuotesAdmin />}
+          />
+
+          {/* RECEIPTS */}
+          <Route
+            path="receipts"
+            element={<Receipts />}
           />
 
         </Route>
@@ -214,6 +232,7 @@ function Layout() {
           path="/user"
           element={<UserLayout />}
         >
+          
 
           {/* DEFAULT */}
           <Route
@@ -232,6 +251,10 @@ function Layout() {
             path="cart"
             element={<Cart />}
           />
+          <Route
+  path="orders"
+  element={<MyOrdersPage />}
+/>
 
           {/* BUYING */}
           <Route
@@ -247,7 +270,7 @@ function Layout() {
 
           {/* PRODUCT DETAILS */}
           <Route
-            path="productdetails"
+            path="productdetails/:slug"
             element={<Productdetails />}
           />
 
@@ -270,11 +293,15 @@ function Layout() {
 function App() {
 
   return (
-    <BrowserRouter>
+    <CartWebSocketProvider>
 
-      <Layout />
+      <BrowserRouter>
 
-    </BrowserRouter>
+        <Layout />
+
+      </BrowserRouter>
+
+    </CartWebSocketProvider>
   );
 }
 

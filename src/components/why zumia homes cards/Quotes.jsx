@@ -7,7 +7,19 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 function Quotes() {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleSignupClick = () => {
+    navigate("/login/signup");
+  };
+
   const highlights = [
     "Quote requests processed within 2–4 business hours",
     "Custom product sourcing available",
@@ -48,7 +60,10 @@ function Quotes() {
       {/* HERO */}
       <div className="bg-[#f8f3e8] border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8 cursor-pointer"
+          >
             <ArrowLeft size={16} />
             Back
           </button>
@@ -175,7 +190,10 @@ function Quotes() {
               Register as a B2B customer and unlock all features today.
             </p>
 
-            <button className="bg-[#ff8a00] hover:bg-[#eb7d00] transition text-white font-semibold px-8 py-4 rounded-full shadow-lg">
+            <button
+              onClick={handleSignupClick}
+              className="bg-[#ff8a00] hover:bg-[#eb7d00] transition text-white font-semibold px-8 py-4 rounded-full shadow-lg cursor-pointer"
+            >
               Register as B2B Customer
             </button>
           </div>

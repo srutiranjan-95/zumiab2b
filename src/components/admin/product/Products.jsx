@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable no-constant-binary-expression */
+import { useEffect, useState, useRef } from "react";
 
 import {
   Search,
@@ -11,6 +12,14 @@ import {
 
 import AddProduct from "./AddProduct";
 
+import {
+  getAllProducts,
+  deleteProduct,
+  updateProductStatus,
+} from "../../../service/apiProductlist";
+
+import { bulkImportProducts } from "../../../service/apiProductlist";
+
 export default function Products() {
 
   const [openAddModal, setOpenAddModal] =
@@ -20,95 +29,304 @@ export default function Products() {
     useState(null);
 
   const [products, setProducts] =
-    useState([
-      {
-        image:
-          "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=300&auto=format&fit=crop",
+    useState([]);
 
-        images: [
-          {
-            url:
-              "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=300&auto=format&fit=crop",
-          },
-          {
-            url:
-              "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=300&auto=format&fit=crop",
-          },
-        ],
+  const [currentPage, setCurrentPage] =
+    useState(1);
 
-        name: "8112-600X800",
-        sku: "SKU-898989",
-        category:
-          "Indoor Lighting",
-        brand: "ZUMIA",
-        mrp: "₹3,456.00",
-        retail: "₹2,344.90",
-        b2b: "₹1,234.00",
-        stock: 73,
-        status: "Inactive",
-      },
+  const [totalPages, setTotalPages] =
+    useState(1);
 
-      {
-        image:
-          "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=300&auto=format&fit=crop",
+  const [openDeleteModal, setOpenDeleteModal] =
+    useState(false);
 
-        images: [
-          {
-            url:
-              "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=300&auto=format&fit=crop",
-          },
-          {
-            url:
-              "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=300&auto=format&fit=crop",
-          },
-        ],
+  const [deleteProductId, setDeleteProductId] =
+    useState(null);
 
-        name:
-          "Crystal Prism Cylinder Wall Sconce",
-        sku: "SKU-7654567",
-        category:
-          "Indoor Lighting",
-        brand: "ZUMIA",
-        mrp: "₹2,000.00",
-        retail: "₹1,500.00",
-        b2b: "₹850.00",
-        stock: 12,
-        status: "Inactive",
-      },
-    ]);
+  const [importing, setImporting] =
+  useState(false);
 
-  const toggleStatus = (index) => {
+ const fileInputRef = useRef(null);
 
-    const updatedProducts = [
-      ...products,
-    ];
+  const handleBulkImportClick = () => {
+    fileInputRef.current?.click();
+  };
 
-    updatedProducts[index].status =
-      updatedProducts[index]
-        .status === "Active"
-        ? "Inactive"
-        : "Active";
+  const handleFileChange = async (e) => {
+  const file = e.target.files?.[0];
 
-    setProducts(updatedProducts);
+  if (!file) return;
+
+  try {
+    setImporting(true);
+
+    const token = localStorage.getItem("access");
+
+    const response = await bulkImportProducts(
+      file,
+      token
+    );
+
+    alert(
+      `Imported: ${response.success_count}, Failed: ${response.failed_count}`
+    );
+
+    fetchProducts(currentPage);
+
+  } catch (error) {
+    alert(error.message || "Import failed");
+  } finally {
+    setImporting(false);
+    e.target.value = "";
+  }
+};
+
+  const limit = 10;
+
+  // GET ALL PRODUCTS
+  useEffect(() => {
+
+  fetchProducts(currentPage);
+
+  // SCROLL TOP ON PAGE CHANGE
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+
+}, [currentPage]);
+
+  const fetchProducts = async (
+  page = 1
+) => {
+
+  try {
+
+    const response =
+      await getAllProducts(
+        page,
+        limit
+      );
+
+    const productData =
+      response?.data || [];
+
+    const formattedProducts =
+      productData.map(
+        (item) => {
+
+          const formattedImages =
+            Array.isArray(
+              item.images
+            )
+              ? item.images.map(
+                  (img) => ({
+                    url: img,
+                  })
+                )
+              : [];
+
+          return {
+
+            // FIX SLUG
+id:
+  item.id,
+
+slug:
+  item.slug,
+
+            // MAIN IMAGE
+            image:
+              formattedImages[0]
+                ?.url ||
+              item.image ||
+              null,
+
+            // PREVIEW IMAGES
+            images:
+              formattedImages.slice(
+                1
+              ),
+
+            // PRODUCT NAME
+            name:
+              item.name ||
+              "New Product",
+
+            // SKU
+            sku:
+              item.sku ||
+              "SKU-0000",
+
+            // ITEM CODE
+            itemCode:
+              item.item_code ||
+              "ITEM-0000",
+
+            category:
+  item.category?.name ||
+  "Indoor Lighting",
+
+brand:
+  item.brand?.name ||
+  "ZUMIA",
+
+            // PRICES
+            mrp:
+              `₹${item.mrp}`,
+
+            retail:
+              `₹${item.retail}`,
+
+            b2b:
+              `₹${item.b2b}`,
+
+            // STOCK
+            stock:
+              item.stock_quantity ||
+              0,
+
+            // STATUS
+            status:
+  item.status ===
+  "Publish"
+    ? "Active"
+    : "Inactive",
+
+          };
+
+        }
+      );
+
+    setProducts(
+      formattedProducts
+    );
+
+    // PAGINATION
+    setCurrentPage(
+      response?.page || 1
+    );
+
+    setTotalPages(
+      Math.ceil(
+        (response?.total ||
+          0) / limit
+      ) || 1
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Fetch Products Error:",
+      error
+    );
+
+  }
+
+};
+
+ const toggleStatus = async (
+  index,
+  slug
+) => {
+
+  try {
+
+    // CURRENT UI STATUS
+    const currentUiStatus =
+      products[index]
+        .status;
+
+    // API STATUS
+    const apiStatus =
+      currentUiStatus ===
+      "Active"
+        ? "Unpublish"
+        : "Publish";
+
+    const response =
+      await updateProductStatus(
+        slug,
+        apiStatus
+      );
+
+    if (
+      response?.status
+    ) {
+
+      const updatedProducts = [
+        ...products,
+      ];
+
+      // UPDATE UI
+      updatedProducts[index].status =
+        apiStatus ===
+        "Publish"
+          ? "Active"
+          : "Inactive";
+
+      setProducts(
+        updatedProducts
+      );
+      // AUTO REFRESH PRODUCTS
+fetchProducts(currentPage);
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "UPDATE STATUS ERROR:",
+      error.response
+        ?.data || error
+    );
+
+  }
+
+};
+
+  // OPEN DELETE MODAL
+  const handleDeleteClick = (
+  productSlug
+) => {
+
+    setDeleteProductId(
+  productSlug
+);
+
+    setOpenDeleteModal(true);
 
   };
 
   // DELETE PRODUCT
-  const handleDelete = (index) => {
+  const handleDelete = async () => {
 
-    const confirmDelete =
-      window.confirm(
-        "Are you sure you want to delete this product?"
+    try {
+
+      await deleteProduct(
+        deleteProductId
       );
 
-    if (!confirmDelete) return;
+      setProducts((prev) =>
+  prev.filter(
+    (item) =>
+      item.slug !==
+      deleteProductId
+  )
+);
 
-    const updatedProducts =
-      products.filter(
-        (_, i) => i !== index
+      setOpenDeleteModal(false);
+
+      setDeleteProductId(null);
+
+    } catch (error) {
+
+      console.error(
+        "Delete Product Error:",
+        error
       );
 
-    setProducts(updatedProducts);
+    }
 
   };
 
@@ -129,20 +347,23 @@ export default function Products() {
     setProducts((prev) => [
       {
         image:
-          productData.image ||
-          "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=300&auto=format&fit=crop",
+          productData.image || null,
 
         images:
-          productData.images ||
-          [],
+          productData.images
+            ?.slice(1) || [],
 
         name:
           productData.name ||
           "New Product",
 
         sku:
-          productData.sku ||
-          "SKU-0000",
+  productData.sku ||
+  "SKU-0000",
+
+itemCode:
+  productData.item_code ||
+  "ITEM-0000",
 
         category:
           productData.category ||
@@ -165,13 +386,16 @@ export default function Products() {
         stock:
           productData.stock || 0,
 
-        status: "Active",
+        status: "Inactive",
       },
 
       ...prev,
     ]);
 
     setOpenAddModal(false);
+
+    // AUTO REFRESH PRODUCTS
+fetchProducts(currentPage);
 
   };
 
@@ -202,19 +426,35 @@ export default function Products() {
 
         <div className="flex flex-wrap gap-2">
 
-          <button className="h-[42px] px-4 rounded-xl border border-gray-200 bg-white text-[13px] font-medium flex items-center gap-2">
+          {/* <button className="h-[42px] px-4 rounded-xl border border-gray-200 bg-white text-[13px] font-medium flex items-center gap-2">
 
             <Settings2 size={15} />
             Price Settings
 
-          </button>
+          </button> */}
 
-          <button className="h-[42px] px-4 rounded-xl border border-gray-200 bg-white text-[13px] font-medium flex items-center gap-2">
+          <>
+  <button
+  onClick={handleBulkImportClick}
+  disabled={importing}
+  className={`h-[42px] px-4 rounded-xl border border-gray-200 bg-white text-[13px] font-medium flex items-center gap-2 transition-all duration-300 ${
+    importing
+      ? "opacity-50 cursor-not-allowed"
+      : "hover:bg-gray-50"
+  }`}
+>
+  <Upload size={15} />
+  {importing ? "Importing..." : "Bulk Import"}
+</button>
 
-            <Upload size={15} />
-            Bulk Import
-
-          </button>
+  <input
+    type="file"
+    ref={fileInputRef}
+    className="hidden"
+    accept=".xlsx,.xls,.doc,.docx"
+    onChange={handleFileChange}
+  />
+</>
 
           {/* OPEN MODAL BUTTON */}
           <button
@@ -292,33 +532,39 @@ export default function Products() {
                         {/* MAIN IMAGE */}
                         <div className="space-y-2">
 
-                          <div className="h-[54px] w-[54px] rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                          <div className="h-[54px] w-[54px] rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100 flex items-center justify-center">
 
-                            <img
-                              src={
-                                item.image
-                              }
-                              alt={
-                                item.name
-                              }
-                              className="h-full w-full object-cover"
-                            />
+                            {item.image ? (
+
+                              <img
+                                src={
+                                  item.image
+                                }
+                                alt={
+                                  item.name
+                                }
+                                className="h-full w-full object-cover"
+                              />
+
+                            ) : (
+
+                              <span className="text-[10px] text-gray-400 font-medium">
+                                No Image
+                              </span>
+
+                            )}
 
                           </div>
 
-                          {/* SMALL IMAGE PREVIEW */}
+                          {/* MULTIPLE IMAGE PREVIEW */}
                           {item.images &&
-                            item.images
-                              .length >
+                            item.images.length >
                               0 && (
 
                               <div className="flex flex-wrap gap-1 max-w-[90px]">
 
                                 {item.images
-                                  .slice(
-                                    0,
-                                    6
-                                  )
+                                  .slice(0, 6)
                                   .map(
                                     (
                                       img,
@@ -326,9 +572,7 @@ export default function Products() {
                                     ) => (
 
                                       <div
-                                        key={
-                                          index
-                                        }
+                                        key={index}
                                         className="h-[20px] w-[20px] rounded-md overflow-hidden border border-gray-200 bg-gray-100"
                                       >
 
@@ -370,9 +614,10 @@ export default function Products() {
                     </td>
 
                     {/* ITEM CODE */}
-                    <td className="px-5 py-4 text-[12px] text-gray-600 leading-relaxed">
-                      {item.sku}
-                    </td>
+                    {/* ITEM CODE */}
+<td className="px-5 py-4 text-[12px] text-gray-600 leading-relaxed">
+  {item.itemCode}
+</td>
 
                     {/* CATEGORY */}
                     <td className="px-5 py-4">
@@ -418,7 +663,8 @@ export default function Products() {
                       <button
                         onClick={() =>
                           toggleStatus(
-                            i
+                            i,
+                            item.slug
                           )
                         }
                         className={`px-4 h-[30px] rounded-full text-[11px] font-semibold transition-all duration-300 ${
@@ -460,8 +706,8 @@ export default function Products() {
                         {/* DELETE */}
                         <button
                           onClick={() =>
-                            handleDelete(
-                              i
+                            handleDeleteClick(
+                              item.slug
                             )
                           }
                           className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-red-50 transition-all duration-300"
@@ -489,7 +735,145 @@ export default function Products() {
 
         </div>
 
+        {/* PAGINATION */}
+{totalPages > 1 && (
+
+  <div className="flex items-center justify-between px-5 py-4 border-t border-gray-200">
+
+    <p className="text-[13px] text-gray-500">
+      Page {currentPage} of {totalPages}
+    </p>
+
+    <div className="flex items-center gap-2 flex-wrap">
+
+      {/* PREVIOUS */}
+      <button
+        disabled={currentPage === 1}
+        onClick={() =>
+          setCurrentPage(
+            (prev) => prev - 1
+          )
+        }
+        className={`h-[38px] px-4 rounded-xl text-[13px] font-medium border transition-all duration-300 ${
+          currentPage === 1
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : "bg-white border-gray-200 hover:bg-gray-50"
+        }`}
+      >
+        Previous
+      </button>
+
+      {/* PAGE NUMBERS */}
+      {Array.from(
+        {
+          length: totalPages,
+        },
+        (_, index) =>
+          index + 1
+      ).map((page) => (
+
+        <button
+          key={page}
+          onClick={() =>
+            setCurrentPage(
+              page
+            )
+          }
+          className={`h-[38px] min-w-[38px] px-3 rounded-xl text-[13px] font-medium border transition-all duration-300 ${
+            currentPage === page
+              ? "bg-blue-600 text-white border-blue-600"
+              : "bg-white border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          {page}
+        </button>
+
+      ))}
+
+      {/* NEXT */}
+      <button
+        disabled={
+          currentPage === totalPages
+        }
+        onClick={() =>
+          setCurrentPage(
+            (prev) => prev + 1
+          )
+        }
+        className={`h-[38px] px-4 rounded-xl text-[13px] font-medium border transition-all duration-300 ${
+          currentPage === totalPages
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : "bg-blue-600 text-white border-blue-600"
+        }`}
+      >
+        Next
+      </button>
+
+    </div>
+
+  </div>
+
+)}
+
       </div>
+
+      {/* DELETE MODAL */}
+      {openDeleteModal && (
+
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+
+          <div className="w-full max-w-[340px] rounded-2xl bg-white p-5">
+
+            <div className="flex flex-col items-center text-center">
+
+              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+
+                <Trash2
+                  size={22}
+                  className="text-red-500"
+                />
+
+              </div>
+
+              <h2 className="mt-4 text-[18px] font-bold text-black">
+                Delete Product
+              </h2>
+
+              <p className="mt-2 text-[13px] text-gray-500 leading-relaxed">
+                Are you sure you want to delete this product?
+              </p>
+
+              <div className="mt-5 flex items-center gap-2 w-full">
+
+                <button
+                  onClick={() => {
+
+                    setOpenDeleteModal(false);
+
+                    setDeleteProductId(null);
+
+                  }}
+                  className="flex-1 h-[42px] rounded-xl border border-gray-200 bg-white text-[13px] font-semibold text-black"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 h-[42px] rounded-xl bg-red-500 text-white text-[13px] font-semibold"
+                >
+                  Delete
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
       {/* ADD PRODUCT MODAL */}
       {openAddModal && (

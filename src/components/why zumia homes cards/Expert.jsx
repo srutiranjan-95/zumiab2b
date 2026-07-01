@@ -8,7 +8,19 @@ import {
   MessageCircle,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 function Expert() {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleSignupClick = () => {
+    navigate("/login/signup");
+  };
+
   const highlights = [
     "Dedicated account manager for every B2B account",
     "In-house interior consultants available",
@@ -49,7 +61,10 @@ function Expert() {
       {/* HERO */}
       <div className="bg-[#fbf0f5] border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition mb-8 cursor-pointer"
+          >
             <ArrowLeft size={16} />
             Back
           </button>
@@ -176,7 +191,10 @@ function Expert() {
               Register as a B2B customer and unlock all features today.
             </p>
 
-            <button className="bg-[#ef3b7d] hover:bg-[#dc276b] transition text-white font-semibold px-8 py-4 rounded-full shadow-lg">
+            <button
+              onClick={handleSignupClick}
+              className="bg-[#ef3b7d] hover:bg-[#dc276b] transition text-white font-semibold px-8 py-4 rounded-full shadow-lg cursor-pointer"
+            >
               Register as B2B Customer
             </button>
           </div>

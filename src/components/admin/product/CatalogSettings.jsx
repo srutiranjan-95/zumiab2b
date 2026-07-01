@@ -22,6 +22,8 @@ import {
   updateBrandStatus,
 } from "../../../service/apiCatalogsettings";
 
+import { getDisplaySettings, updateDisplaySettings } from "../../../service/apiDisplaysettings";
+
 export default function CatalogSettings() {
 
   const hasFetched = useRef(false);
@@ -200,6 +202,59 @@ export default function CatalogSettings() {
     }
   };
 
+  const fetchDisplaySettings = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await getDisplaySettings(token);
+
+    setDisplaySettings([
+      {
+        title: "Retail Price",
+        subtitle: "Show the available price on product cards",
+        active: response?.retail ?? true,
+      },
+      {
+        title: "MRP",
+        subtitle: "Show the Maximum Retail Price (with strikethrough)",
+        active: response?.mrp ?? true,
+      },
+      {
+        title: "B2B Price",
+        subtitle: "Show the wholesale B2B price badge",
+        active: response?.b2b ?? true,
+      },
+      {
+        title: "Description",
+        subtitle: "Show product description text",
+        active: response?.description ?? true,
+      },
+      {
+        title: "Brand",
+        subtitle: "Show the product brand name",
+        active: response?.brand ?? true,
+      },
+      {
+        title: "Item Code",
+        subtitle: "Show the internal item code",
+        active: response?.item_code ?? true,
+      },
+      {
+        title: "SKU",
+        subtitle: "Show the product SKU number",
+        active: response?.sku ?? true,
+      },
+      {
+        title: "Stock Quantity",
+        subtitle: "Show available stock count to customers",
+        active: response?.stock_quantity ?? true,
+      },
+    ]);
+  } catch (error) {
+    console.error("Display Settings Error:", error);
+  }
+};
+
   useEffect(() => {
 
     if (hasFetched.current) return;
@@ -209,6 +264,8 @@ export default function CatalogSettings() {
     fetchCategories();
 
     fetchBrands();
+
+    fetchDisplaySettings();
 
   }, []);
 
@@ -436,18 +493,68 @@ export default function CatalogSettings() {
     }
   };
 
-  const toggleDisplaySetting = (index) => {
-    setDisplaySettings((prev) =>
-      prev.map((item, i) =>
-        i === index
-          ? {
-              ...item,
-              active: !item.active,
-            }
-          : item
-      )
+  const toggleDisplaySetting = async (index) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    // Updated UI state
+    const updatedSettings = displaySettings.map((item, i) =>
+      i === index
+        ? {
+            ...item,
+            active: !item.active,
+          }
+        : item
     );
-  };
+
+    setDisplaySettings(updatedSettings);
+
+    // Prepare payload
+    const payload = {
+      retail: updatedSettings.find(
+        (item) => item.title === "Retail Price"
+      )?.active,
+
+      mrp: updatedSettings.find(
+        (item) => item.title === "MRP"
+      )?.active,
+
+      b2b: updatedSettings.find(
+        (item) => item.title === "B2B Price"
+      )?.active,
+
+      description: updatedSettings.find(
+        (item) => item.title === "Description"
+      )?.active,
+
+      brand: updatedSettings.find(
+        (item) => item.title === "Brand"
+      )?.active,
+
+      item_code: updatedSettings.find(
+        (item) => item.title === "Item Code"
+      )?.active,
+
+      sku: updatedSettings.find(
+        (item) => item.title === "SKU"
+      )?.active,
+
+      stock_quantity: updatedSettings.find(
+  (item) => item.title === "Stock Quantity"
+)?.active,
+    };
+
+    const response = await updateDisplaySettings(
+      payload,
+      token
+    );
+
+    console.log(response);
+
+  } catch (error) {
+    console.error("Update Display Settings Error:", error);
+  }
+};
 
   return (
     <div className="space-y-7">

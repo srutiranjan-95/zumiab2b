@@ -1,21 +1,24 @@
 import {
   Home,
   User,
-  Shield,
-  BriefcaseBusiness,
 } from "lucide-react";
 
 import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import zumialogo from "../assets/zumialogo.png";
 
+import "../App.css";
+
 function Header() {
-  const [loginDropdown, setLoginDropdown] = useState(false);
 
   const navigate = useNavigate();
 
+  const [loading, setLoading] = useState(false);
+
   const handleHomeClick = () => {
+
     navigate("/");
 
     window.scrollTo({
@@ -24,48 +27,80 @@ function Header() {
     });
   };
 
+  const handleLoginClick = () => {
+
+    setLoading(true);
+
+    setTimeout(() => {
+
+      navigate("/login/signin");
+
+      setLoading(false);
+
+    }, 1500);
+  };
+
   return (
-    <header className="sticky top-0 z-[999] w-full bg-[#F2F6FA] px-4 sm:px-6 lg:px-10 py-3">
+    <>
+      {/* FULL SCREEN LOADER */}
+      {loading && (
+        <div className="fixed inset-0 z-[9999] bg-white/40 backdrop-blur-xs flex items-center justify-center">
 
-      <div className="flex items-center justify-between">
+          {/* Loader */}
+          <div className="three-body">
 
-        {/* Logo */}
-        <div>
-          <img
-            src={zumialogo}
-            alt="ZUMIA Logo"
-            className="h-10 sm:h-12 object-contain"
-          />
+            <div className="three-body__dot"></div>
+
+            <div className="three-body__dot"></div>
+
+            <div className="three-body__dot"></div>
+
+          </div>
+
         </div>
+      )}
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-3">
+      <header className="sticky top-0 z-[999] w-full bg-[#F2F6FA] px-4 sm:px-6 lg:px-10 py-3">
 
-          {/* Home Button */}
-          <button
-            onClick={handleHomeClick}
-            className="group flex items-center gap-2 px-4 py-1.5 bg-white rounded-[10px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300 cursor-pointer"
-          >
+        <div className="flex items-center justify-between">
 
-            <div className="flex items-center justify-center w-6 h-6">
-              <Home
-                size={16}
-                strokeWidth={2.2}
-                className="text-black group-hover:text-blue-600 transition-all duration-300"
-              />
-            </div>
+          {/* Logo */}
+          <div>
+            <img
+              src={zumialogo}
+              alt="ZUMIA Logo"
+              className="h-10 sm:h-12 object-contain"
+            />
+          </div>
 
-            <span className="text-[13px] font-medium tracking-[0.3px] text-black group-hover:text-blue-600 transition-all duration-300">
-              Home
-            </span>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-3">
 
-          </button>
+            {/* Home Button */}
+            <button
+              onClick={handleHomeClick}
+              className="group flex items-center gap-2 px-4 py-1.5 bg-white rounded-[10px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300 cursor-pointer"
+            >
 
-          {/* Login Dropdown */}
-          <div className="relative group">
+              <div className="flex items-center justify-center w-6 h-6">
+                <Home
+                  size={16}
+                  strokeWidth={2.2}
+                  className="text-black group-hover:text-blue-600 transition-all duration-300"
+                />
+              </div>
+
+              <span className="text-[13px] font-medium tracking-[0.3px] text-black group-hover:text-blue-600 transition-all duration-300">
+                Home
+              </span>
+
+            </button>
 
             {/* Login Button */}
-            <button className="group flex items-center gap-2 px-4 py-1.5 bg-white rounded-[10px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300 cursor-pointer">
+            <button
+              onClick={handleLoginClick}
+              className="group flex items-center gap-2 px-4 py-1.5 bg-white rounded-[10px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300 cursor-pointer"
+            >
 
               <div className="flex items-center justify-center w-6 h-6">
                 <User
@@ -81,118 +116,45 @@ function Header() {
 
             </button>
 
-            {/* Desktop Dropdown Menu */}
-            <div className="absolute right-0 mt-3 w-[220px] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.10)] border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden z-50">
+          </div>
 
-              {/* Customer Login */}
-              <button
-                onClick={() => navigate("/user")}
-                className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-200"
-              >
-                <User size={20} className="text-blue-600" />
+          {/* Mobile Navigation */}
+          <div className="md:hidden flex items-center gap-2 relative">
 
-                <span className="text-[14px] font-medium text-gray-900 cursor-pointer">
-                  Customer Login
-                </span>
-              </button>
+            {/* Mobile Home Button */}
+            <button
+              onClick={handleHomeClick}
+              className="flex items-center justify-center w-11 h-11 bg-white rounded-[12px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300"
+            >
 
-              {/* Manager Login */}
-              <button className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-200">
-                <BriefcaseBusiness size={20} className="text-blue-600" />
+              <Home
+                size={18}
+                strokeWidth={2.2}
+                className="text-black"
+              />
 
-                <span className="text-[14px] font-medium text-gray-900">
-                  Manager Login
-                </span>
-              </button>
+            </button>
 
-              {/* Account Login */}
-              <button className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200">
-                <Shield size={20} className="text-blue-600" />
+            {/* Mobile Login Button */}
+            <button
+              onClick={handleLoginClick}
+              className="flex items-center justify-center w-11 h-11 bg-white rounded-[12px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300"
+            >
 
-                <span className="text-[14px] font-medium text-gray-900">
-                  Account Login
-                </span>
-              </button>
+              <User
+                size={18}
+                strokeWidth={2.2}
+                className="text-black"
+              />
 
-            </div>
+            </button>
 
           </div>
 
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden flex items-center gap-2 relative">
-
-          {/* Mobile Home Button */}
-          <button
-            onClick={handleHomeClick}
-            className="flex items-center justify-center w-11 h-11 bg-white rounded-[12px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300"
-          >
-
-            <Home
-              size={18}
-              strokeWidth={2.2}
-              className="text-black"
-            />
-
-          </button>
-
-          {/* Mobile Login Button */}
-          <button
-            onClick={() => setLoginDropdown(!loginDropdown)}
-            className="flex items-center justify-center w-11 h-11 bg-white rounded-[12px] shadow-[0_3px_10px_rgba(0,0,0,0.06)] border border-white transition-all duration-300"
-          >
-
-            <User
-              size={18}
-              strokeWidth={2.2}
-              className="text-black"
-            />
-
-          </button>
-
-          {/* Mobile Dropdown */}
-          {loginDropdown && (
-            <div className="absolute top-[58px] right-0 w-[220px] bg-white rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.10)] border border-gray-100 overflow-hidden z-50">
-
-              {/* Customer Login */}
-              <button
-                onClick={() => navigate("/user")}
-                className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-200"
-              >
-                <User size={20} className="text-blue-600" />
-
-                <span className="text-[15px] font-medium text-gray-900">
-                  Customer Login
-                </span>
-              </button>
-
-              {/* Manager Login */}
-              <button className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200 border-b border-gray-200">
-                <BriefcaseBusiness size={20} className="text-blue-600" />
-
-                <span className="text-[15px] font-medium text-gray-900">
-                  Manager Login
-                </span>
-              </button>
-
-              {/* Account Login */}
-              <button className="flex items-center gap-4 w-full px-5 py-4 hover:bg-gray-50 transition-all duration-200">
-                <Shield size={20} className="text-blue-600" />
-
-                <span className="text-[15px] font-medium text-gray-900">
-                  Account Login
-                </span>
-              </button>
-
-            </div>
-          )}
-
-        </div>
-
-      </div>
-
-    </header>
+      </header>
+    </>
   );
 }
 

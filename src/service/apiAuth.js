@@ -86,6 +86,10 @@ export const handleSignup = async (payload) => {
       "business_category",
       payload.business_category
     );
+    formData.append(
+      "gst_number",
+      payload.gst_number
+    );
 
     // IMAGE FILE
     if (payload.image) {

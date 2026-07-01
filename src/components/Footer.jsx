@@ -1,9 +1,9 @@
 import { MapPin, Phone, Mail } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 
 function Footer() {
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   return (
     <footer className="bg-[#020c1b] text-gray-300 px-16 py-14">
@@ -84,13 +84,6 @@ function Footer() {
         <p>© 2026 ZUMIA. All rights reserved.</p>
 
         <p>Professional Lighting Solutions · Made in India</p>
-
-        <p
-          onClick={() => navigate("/login/Signin")}
-          className="cursor-pointer hover:text-gray-300"
-        >
-          Admin Login
-        </p>
 
       </div>
 

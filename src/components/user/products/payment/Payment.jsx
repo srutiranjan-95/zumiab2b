@@ -16,10 +16,23 @@ import {
 } from "lucide-react";
 
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  placeOrder,
+  buyNowOrder,
+  createUPIOrder,
+} from "../../../../service/apiPayment";
 
 function PaymentCheckout() {
   const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const { selectedAddress, cartItems, grandTotal, product, quantity, remarks, } =
+    location.state || {};
+
+  console.log("Product Data:", product);
+  console.log("Quantity:", quantity);
 
   const fileInputRef = useRef(null);
 
@@ -28,6 +41,7 @@ function PaymentCheckout() {
   const [transactionId, setTransactionId] = useState("");
 
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [screenshotFile, setScreenshotFile] = useState(null);
 
   const [loadingPayment, setLoadingPayment] = useState(false);
 
@@ -35,24 +49,25 @@ function PaymentCheckout() {
 
   const [showWarning, setShowWarning] = useState(false);
 
-  const [showTransactionWarning, setShowTransactionWarning] =
-    useState(false);
+  const [showTransactionWarning, setShowTransactionWarning] = useState(false);
 
-  const orderData = {
-    customer: "Srutiranjan Nayak",
-    phone: "0637277177",
-    address:
-      "Bada Sandado Sandado Agarpada Bhadrak, Odisha, 756115",
-    amount: "₹14,808.00",
-    product: "8112-600X800",
-    qty: 12,
-  };
+  const totalQty =
+    cartItems?.length > 0
+      ? cartItems.reduce((sum, item) => sum + item.qty, 0)
+      : quantity || 1;
+
+  const productNames =
+    cartItems?.length > 0
+      ? cartItems.map((item) => item.name).join(", ")
+      : product?.name || product?.title || "";
 
   // IMAGE UPLOAD
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
 
     if (file) {
+      setScreenshotFile(file);
+
       const imageUrl = URL.createObjectURL(file);
 
       setUploadedImage(imageUrl);
@@ -62,10 +77,9 @@ function PaymentCheckout() {
   };
 
   // PAYMENT CONFIRM
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
     // UPI VALIDATION
     if (step === "upi") {
-      // SCREENSHOT CHECK
       if (!uploadedImage) {
         setShowWarning(true);
 
@@ -76,7 +90,6 @@ function PaymentCheckout() {
         return;
       }
 
-      // TRANSACTION ID CHECK
       if (!transactionId.trim()) {
         setShowTransactionWarning(true);
 
@@ -88,13 +101,87 @@ function PaymentCheckout() {
       }
     }
 
-    setLoadingPayment(true);
+    try {
+      setLoadingPayment(true);
 
-    setTimeout(() => {
+      const token = localStorage.getItem("access");
+
+      let response;
+
+      if (step === "upi") {
+        if (cartItems && cartItems.length > 0) {
+          response = await createUPIOrder(
+            {
+              address_id: selectedAddress?.id,
+
+              product_id: cartItems[0]?.id,
+
+              quantity: cartItems[0]?.qty || 1,
+
+              remarks: remarks,
+
+              total_amount: grandTotal,
+
+              payment_method: "UPI",
+
+              transaction_id: transactionId,
+
+              transaction_screenshot: screenshotFile,
+            },
+            token,
+          );
+        } else {
+          console.log("Buy Now UPI Order");
+
+          response = await createUPIOrder(
+            {
+              address_id: selectedAddress?.id,
+              product_id: product?.id,
+              quantity: quantity || 1,
+              total_amount: grandTotal,
+              payment_method: "UPI",
+              transaction_id: transactionId,
+              transaction_screenshot: screenshotFile,
+            },
+            token,
+          );
+        }
+      } else {
+        console.log("Regular Order Payload", {
+          address_id: selectedAddress?.id,
+          product_id: product?.id,
+          quantity: quantity || 1,
+          remarks,
+          total_amount: grandTotal,
+        });
+
+        if (cartItems && cartItems.length > 0) {
+          response = await placeOrder(selectedAddress?.id, token);
+        } else {
+          response = await buyNowOrder(
+            selectedAddress?.id,
+            product?.id,
+            quantity || 1,
+            remarks,
+            token,
+          );
+        }
+      }
+
+      console.log("Order Response:", response);
+
+      if (response.status) {
+        setOrderConfirmed(true);
+      } else {
+        alert(response.message || "Failed to place order");
+      }
+    } catch (error) {
+      console.error(error);
+
+      alert(error.message || "Failed to place order");
+    } finally {
       setLoadingPayment(false);
-
-      setOrderConfirmed(true);
-    }, 3500);
+    }
   };
 
   // ORDER SUCCESS SCREEN
@@ -103,10 +190,7 @@ function PaymentCheckout() {
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="w-full max-w-[560px] text-center">
           <div className="w-28 h-28 rounded-full bg-[#EEF8F1] flex items-center justify-center mx-auto mb-8">
-            <CheckCircle2
-              size={58}
-              className="text-[#16A34A]"
-            />
+            <CheckCircle2 size={58} className="text-[#16A34A]" />
           </div>
 
           <h1 className="text-[28px] sm:text-[38px] font-bold text-[#111827]">
@@ -114,8 +198,8 @@ function PaymentCheckout() {
           </h1>
 
           <p className="text-[14px] sm:text-[16px] text-gray-500 mt-4 leading-relaxed max-w-[500px] mx-auto">
-            Your payment has been successfully submitted.
-            Your B2B order is now confirmed and processing.
+            Your payment has been successfully submitted. Your B2B order is now
+            confirmed and processing.
           </p>
 
           {/* BUTTONS */}
@@ -126,17 +210,15 @@ function PaymentCheckout() {
               className="h-[44px] px-6 rounded-[16px] border border-[#DCE5F2] bg-white text-[#111827] text-[14px] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#F5F7FB] transition-all duration-300 w-full sm:w-auto cursor-pointer"
             >
               <Home size={14} />
-
               Home
             </button>
 
             {/* ORDERS BUTTON */}
             <button
-              onClick={() => navigate("/orders")}
+              onClick={() => navigate("/user/orders")}
               className="h-[44px] px-6 rounded-[16px] bg-[#2F66E3] text-white text-[14px    ] font-semibold inline-flex items-center justify-center gap-2 hover:opacity-90 transition-all duration-300 w-full sm:w-auto cursor-pointer"
             >
               <PackageCheck size={14} />
-
               Go to Orders
             </button>
           </div>
@@ -168,10 +250,7 @@ function PaymentCheckout() {
       {showWarning && (
         <div className="fixed top-5 right-5 z-50 bg-white border border-red-200 shadow-lg rounded-[14px] px-4 py-3 flex items-start gap-3 animate-in slide-in-from-top duration-300">
           <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <AlertTriangle
-              size={18}
-              className="text-red-500"
-            />
+            <AlertTriangle size={18} className="text-red-500" />
           </div>
 
           <div>
@@ -190,10 +269,7 @@ function PaymentCheckout() {
       {showTransactionWarning && (
         <div className="fixed top-24 right-5 z-50 bg-white border border-red-200 shadow-lg rounded-[14px] px-4 py-3 flex items-start gap-3 animate-in slide-in-from-top duration-300">
           <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <AlertTriangle
-              size={18}
-              className="text-red-500"
-            />
+            <AlertTriangle size={18} className="text-red-500" />
           </div>
 
           <div>
@@ -213,21 +289,6 @@ function PaymentCheckout() {
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[#EEF2F7]">
           <div className="flex items-center gap-3">
-            {/* BACK */}
-            <button
-              onClick={() => {
-                if (step === "upi" || step === "cod") {
-                  setStep("payment");
-                  setPaymentMethod("");
-                } else {
-                  navigate(-1);
-                }
-              }}
-              className="w-9 h-9 rounded-full bg-[#F5F7FB] flex items-center justify-center hover:bg-[#E9EEF8] transition-all duration-300"
-            >
-              <ArrowLeft size={17} className="text-gray-700" />
-            </button>
-
             <div>
               <h1 className="text-[16px] sm:text-[18px] font-bold text-[#111827] leading-none">
                 Payment Checkout
@@ -239,13 +300,30 @@ function PaymentCheckout() {
             </div>
           </div>
 
-          {/* CLOSE */}
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full bg-[#F5F7FB] flex items-center justify-center hover:bg-[#E9EEF8] transition-all duration-300"
-          >
-            <X size={17} className="text-gray-700" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* BACK */}
+            <button
+              onClick={() => {
+                if (step === "upi" || step === "cod") {
+                  setStep("payment");
+                  setPaymentMethod("");
+                } else {
+                  navigate(-1);
+                }
+              }}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </button>
+
+            {/* CLOSE */}
+            <button
+              onClick={() => navigate("/user")}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* STEPS */}
@@ -302,16 +380,21 @@ function PaymentCheckout() {
 
                   <div>
                     <h2 className="text-[15px] sm:text-[17px] font-bold text-[#111827] leading-snug">
-                      {orderData.customer}
+                      {selectedAddress?.full_name}
 
                       <span className="text-gray-500 font-medium">
                         {" "}
-                        · {orderData.phone}
+                        · {selectedAddress?.mobile_number}
                       </span>
                     </h2>
 
                     <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      {orderData.address}
+                      <>
+                        {selectedAddress?.address_line_1},
+                        {selectedAddress?.address_line_2},
+                        {selectedAddress?.city},{selectedAddress?.state},
+                        {selectedAddress?.pincode}
+                      </>
                     </p>
                   </div>
                 </div>
@@ -323,7 +406,7 @@ function PaymentCheckout() {
                   </span>
 
                   <span className="text-[22px] sm:text-[28px] font-bold text-[#2F66E3]">
-                    {orderData.amount}
+                    ₹{grandTotal?.toLocaleString()}
                   </span>
                 </div>
 
@@ -346,17 +429,14 @@ function PaymentCheckout() {
                         <h3 className="text-[15px] sm:text-[17px] font-bold text-[#111827] ">
                           UPI / QR Payment
                         </h3>
-                    
+
                         <p className="text-[11px] sm:text-[12px] text-gray-500 mt-1">
                           Scan & pay instantly using any UPI app
                         </p>
                       </div>
                     </div>
 
-                    <ChevronRight
-                      size={20}
-                      className="text-gray-400"
-                    />
+                    <ChevronRight size={20} className="text-gray-400" />
                   </button>
 
                   {/* COD */}
@@ -383,10 +463,7 @@ function PaymentCheckout() {
                       </div>
                     </div>
 
-                    <ChevronRight
-                      size={20}
-                      className="text-gray-400"
-                    />
+                    <ChevronRight size={20} className="text-gray-400" />
                   </button>
                 </div>
               </div>
@@ -395,9 +472,7 @@ function PaymentCheckout() {
               <div className="lg:col-span-4">
                 <div className="bg-[#071330] rounded-[18px] p-4 text-white h-full">
                   <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[17px] font-bold">
-                      Order Summary
-                    </h3>
+                    <h3 className="text-[17px] font-bold">Order Summary</h3>
 
                     <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
                       <Clock3 size={16} />
@@ -406,30 +481,23 @@ function PaymentCheckout() {
 
                   <div className="space-y-4">
                     <div>
-                      <p className="text-white/60 text-[10px] mb-1">
-                        Product
-                      </p>
+                      <p className="text-white/60 text-[10px] mb-1">Product</p>
 
                       <h4 className="text-[14px] font-semibold">
-                        {orderData.product}
+                        {productNames}
                       </h4>
                     </div>
 
                     <div>
-                      <p className="text-white/60 text-[10px] mb-1">
-                        Quantity
-                      </p>
+                      <p className="text-white/60 text-[10px] mb-1">Quantity</p>
 
                       <h4 className="text-[14px] font-semibold">
-                        {orderData.qty} Units
+                        {totalQty} Units
                       </h4>
-
                     </div>
 
                     <div>
-                      <p className="text-white/60 text-[10px] mb-1">
-                        Delivery
-                      </p>
+                      <p className="text-white/60 text-[10px] mb-1">Delivery</p>
 
                       <h4 className="text-[14px] font-semibold">
                         Express B2B Shipping
@@ -442,7 +510,7 @@ function PaymentCheckout() {
                       </p>
 
                       <h2 className="text-[24px] sm:text-[30px] font-bold">
-                        {orderData.amount}
+                        ₹{grandTotal?.toLocaleString()}
                       </h2>
                     </div>
                   </div>
@@ -479,16 +547,14 @@ function PaymentCheckout() {
                   </p>
 
                   <h1 className="text-[28px] sm:text-[36px] font-bold text-[#2F66E3] leading-none mt-2">
-                    {orderData.amount}
+                    ₹{grandTotal?.toLocaleString()}
                   </h1>
 
                   <div className="mt-4 bg-white rounded-[14px] p-3 flex items-center justify-between">
-                    <span className="text-[12px] text-gray-500">
-                      Items
-                    </span>
+                    <span className="text-[12px] text-gray-500">Items</span>
 
                     <span className="text-[13px] font-semibold">
-                      {orderData.product}
+                      {productNames} ({totalQty} Units)
                     </span>
                   </div>
 
@@ -501,13 +567,10 @@ function PaymentCheckout() {
                     <input
                       type="text"
                       value={transactionId}
-                      onChange={(e) =>
-                        setTransactionId(e.target.value)
-                      }
+                      onChange={(e) => setTransactionId(e.target.value)}
                       placeholder="Enter transaction ID after payment"
                       className={`w-full h-[44px] px-4 rounded-[12px] border bg-white mt-2 text-[13px] outline-none transition-all duration-300 ${
-                        !transactionId.trim() &&
-                        showTransactionWarning
+                        !transactionId.trim() && showTransactionWarning
                           ? "border-red-400"
                           : "border-[#D5DEEA] focus:border-[#2F66E3]"
                       }`}
@@ -515,10 +578,7 @@ function PaymentCheckout() {
                   </div>
 
                   <div className="mt-4 bg-white rounded-[12px] px-3 py-3 flex items-center gap-2">
-                    <Clock3
-                      size={14}
-                      className="text-gray-500 shrink-0"
-                    />
+                    <Clock3 size={14} className="text-gray-500 shrink-0" />
 
                     <span className="text-[11px] text-gray-500">
                       Scan the QR code, pay, then upload screenshot
@@ -546,10 +606,7 @@ function PaymentCheckout() {
                       {!uploadedImage ? (
                         <>
                           <div className="w-14 h-14 rounded-full bg-[#F5F7FB] flex items-center justify-center mx-auto mb-3">
-                            <Upload
-                              size={22}
-                              className="text-gray-500"
-                            />
+                            <Upload size={22} className="text-gray-500" />
                           </div>
 
                           <h3 className="text-[17px] font-bold text-[#111827]">
@@ -585,7 +642,6 @@ function PaymentCheckout() {
                     }`}
                   >
                     <ImagePlus size={16} />
-
                     Confirm Payment
                   </button>
                 </div>
@@ -608,48 +664,47 @@ function PaymentCheckout() {
 
                   <div>
                     <h2 className="text-[15px] sm:text-[17px] font-bold text-[#111827]">
-                      {orderData.customer}
+                      {selectedAddress?.full_name}
 
                       <span className="text-gray-500 font-medium">
                         {" "}
-                        · {orderData.phone}
+                        · {selectedAddress?.mobile_number}
                       </span>
                     </h2>
 
                     <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">
-                      {orderData.address}
+                      <>
+                        {selectedAddress?.address_line_1},
+                        {selectedAddress?.address_line_2},
+                        {selectedAddress?.city},{selectedAddress?.state},
+                        {selectedAddress?.pincode}
+                      </>
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-[#F5F7FB] rounded-[14px] p-4 mb-4">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[13px] text-gray-500">
-                      Amount
-                    </span>
+                    <span className="text-[13px] text-gray-500">Amount</span>
 
                     <span className="text-[12px] sm:text-[20px] font-bold text-[#2F66E3]">
-                      {orderData.amount}
+                      ₹{grandTotal?.toLocaleString()}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[13px] text-gray-500">
-                      Product
-                    </span>
+                    <span className="text-[13px] text-gray-500">Product</span>
 
                     <span className="text-[14px] sm:text-[16px] font-semibold">
-                      {orderData.product}
+                      {productNames}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-500">
-                      Quantity
-                    </span>
+                    <span className="text-[13px] text-gray-500">Quantity</span>
 
                     <span className="text-[14px] sm:text-[16px] font-semibold">
-                      {orderData.qty}
+                      {totalQty} Units
                     </span>
                   </div>
                 </div>
